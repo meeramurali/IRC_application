@@ -1,21 +1,27 @@
 import socket 
 import select 
 import json
+import _thread
 from chatroom import Chatroom, User
-from message import SERVER_OPCODE, Message, ErrorMessage
+from packet import SERVER_OPCODE, CLIENT_OPCODE
 
 
 class Server:
     def __init__(self, IP_addr, port):
         self.rooms = {}
-        self.IP_addr = IP_addr
-        self.port = port
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind((self.IP_addr, self.port)) 
-
-        self.socket.listen(100)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((IP_addr, port)) 
+            s.listen(100)
+            # conn, addr = s.accept() 
+            # with conn:
+            #     print(addr[0], " connected")
+            #     _thread.start_new_thread(self.client_thread,(conn, addr))
+            while True:
+                conn, addr = s.accept()
+                print(addr[0], " connected")
+                _thread.start_new_thread(self.client_thread,(conn, addr))
+            conn.close()
 
 
     def create_new_chatroom(self, room_name):
@@ -42,20 +48,50 @@ class Server:
         self.rooms[room_name].remove_user(username)
 
 
+    def get_rooms_list(self):
+        room_list = ""
+        for roomname in self.rooms.keys():
+             room_list = room_list + roomname + '\n'
+        return room_list
+
+
     def process_client_msg(self, msg_json_str):
         msg = json.loads(msg_json_str)
 
-        if msg["opcode"] not in SERVER_OPCODE:
+        if msg["opcode"] not in CLIENT_OPCODE:
             print("Invalid Opcode!")
-            return None
+            return "Invalid Opcode!"
 
         else:
-            print(msg["opcode"])
-            print(msg["data"])
+            if msg['opcode'] == 'CREATE_ROOM':
+                print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
+                self.create_new_chatroom(msg['roomname'])
+                return f"New chatroom {msg['roomname']} created!"
+
+            elif msg['opcode'] == 'LIST_ROOMS':
+                print(f"<{msg['username']}> {msg['opcode']}")
+                return self.get_rooms_list() or "No rooms created!"
+
+            elif msg['opcode'] == 'EXIT':
+                print(f"{msg['username']} disconnected")
+
+            else: #'LIST_USERS'
+                pass
 
 
+    def client_thread(self, conn, addr):   
+        conn.sendall(b"Welcome to IRC chat app!")    
+        while True:
+            message = conn.recv(2048) 
+            if not message:
+                break
+            else: 
+                response_str = self.process_client_msg(message)
+                print(response_str)
+                conn.sendall(response_str.encode('utf-8'))
 
-test = Server(IP_addr="0.0.0.0", port=8000)
+
+test = Server(IP_addr="127.0.0.1", port=8000)
 test.create_new_chatroom("CS590")
 test.create_new_chatroom("CS530")
 test.add_user_to_room(User("mmurali", "0.0.0.0", None), "CS590")
@@ -67,10 +103,6 @@ test.remove_user_from_room("mmurali", "CS530")
 test.display_all_rooms()
 print("--------------")
 test.display_room("CS540")
-
-print("--------------")
-test.process_client_msg(ErrorMessage("some error").get_json_str())
-test.process_client_msg(Message(opcode="WELCOME", data="Hello").get_json_str())
 
 
 

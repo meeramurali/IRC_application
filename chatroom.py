@@ -21,24 +21,6 @@ class Chatroom:
             user.display_user(verbose)
 
 
-    def user_thread(user): 
-        user.connection.send(f"Welcome to {self.name}!") 
-      
-        while True: 
-            try: 
-                message = user.connection.recv(2048) 
-                if message: 
-                    print("<" + addr[0] + "> " + message)
-                    message_to_send = "<" + addr[0] + "> " + message 
-                    self.broadcast(message_to_send, user) 
-  
-                else: 
-                    self.remove_user(user.username) 
-  
-            except: 
-                continue
-
-
     def broadcast(self, message, sending_user): 
         for user in self.users: 
             if user != sending_user: 

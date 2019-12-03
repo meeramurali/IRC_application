@@ -1,7 +1,7 @@
 import socket 
 import select 
 import sys 
-from message import *
+from packet import *
 
   
 

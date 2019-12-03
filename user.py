@@ -9,7 +9,7 @@ class User:
             print(f"[{self.username}] <{self.IP_addr}>")
         else:
             print(f"[{self.username}]")
-            
+
 
 # test = User("mmurali", "0.0.0.0", None)
 # test.display_user(verbose=True)

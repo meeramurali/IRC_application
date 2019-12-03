@@ -54,29 +54,44 @@ class Server:
              room_list = room_list + roomname + '\n'
         return room_list
 
+    def get_users_list(self, roomname):
+        if roomname in self.rooms:
+            return self.rooms[roomname].get_users_list()
+        else:
+            return "No such room found."        
 
-    def process_client_msg(self, msg_json_str):
+
+    def process_client_msg(self, msg_json_str, conn, addr):
         msg = json.loads(msg_json_str)
 
-        if msg["opcode"] not in CLIENT_OPCODE:
-            print("Invalid Opcode!")
-            return "Invalid Opcode!"
+        if msg['opcode'] == 'CREATE_ROOM':
+            print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
+            self.create_new_chatroom(msg['roomname'])
+            return f"New chatroom {msg['roomname']} created!"
+
+        elif msg['opcode'] == 'LIST_ROOMS':
+            print(f"<{msg['username']}> {msg['opcode']}")
+            return self.get_rooms_list() or "No rooms created!"
+
+        elif msg['opcode'] == 'JOIN_ROOM':
+            print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
+            self.add_user_to_room(User(msg['username'], addr, conn), msg['roomname'])
+            return f"{msg['username']} joined room {msg['roomname']}!"
+
+        elif msg['opcode'] == 'LIST_USERS':
+            print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
+            return self.get_users_list(msg['roomname'])
+
+        elif msg['opcode'] == 'LEAVE_ROOM':
+            print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
+            self.remove_user_from_room(msg['username'], msg['roomname'])
+            return f"{msg['username']} left room {msg['roomname']}!"
+
+        elif msg['opcode'] == 'EXIT':
+            print(f"{msg['username']} disconnected")
 
         else:
-            if msg['opcode'] == 'CREATE_ROOM':
-                print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
-                self.create_new_chatroom(msg['roomname'])
-                return f"New chatroom {msg['roomname']} created!"
-
-            elif msg['opcode'] == 'LIST_ROOMS':
-                print(f"<{msg['username']}> {msg['opcode']}")
-                return self.get_rooms_list() or "No rooms created!"
-
-            elif msg['opcode'] == 'EXIT':
-                print(f"{msg['username']} disconnected")
-
-            else: #'LIST_USERS'
-                pass
+            return "Invalid Opcode!"
 
 
     def client_thread(self, conn, addr):   
@@ -86,7 +101,7 @@ class Server:
             if not message:
                 break
             else: 
-                response_str = self.process_client_msg(message)
+                response_str = self.process_client_msg(message, conn, addr)
                 print(response_str)
                 conn.sendall(response_str.encode('utf-8'))
 

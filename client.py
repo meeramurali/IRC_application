@@ -31,7 +31,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 # get message from server
                 if socket == server_socket: 
                     message = socket.recv(2048)
-                    print(message)
+                    print(message.decode('utf-8'))
 
                 # read command from standard input
                 else: 

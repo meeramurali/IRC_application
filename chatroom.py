@@ -21,6 +21,16 @@ class Chatroom:
             user.display_user(verbose)
 
 
+    def get_users_list(self):
+        users_list = "-----------------------------\n" \
+                    + f"#{self.name} users\n" \
+                    + ".............................\n"
+        for _, user in self.users.items():
+            users_list = users_list + user.username + '\n'
+        users_list = users_list + "-----------------------------"
+        return users_list
+
+
     def broadcast(self, message, sending_user): 
         for user in self.users: 
             if user != sending_user: 

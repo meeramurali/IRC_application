@@ -102,7 +102,6 @@ class Server:
                 break
             else: 
                 response_str = self.process_client_msg(message, conn, addr)
-                print(response_str)
                 conn.sendall(response_str.encode('utf-8'))
 
 

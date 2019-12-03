@@ -7,7 +7,6 @@ from packet import *
 
 SERVER_IP_ADDR = "127.0.0.1" 
 SERVER_PORT = 8000 
-USERNAME = "mmurali"
 CLIENT_COMMANDS = [
     "create_room",
     "join_room",
@@ -17,6 +16,11 @@ CLIENT_COMMANDS = [
     "send_msg",
     "exit"
 ]
+
+if len(sys.argv) != 2: 
+    print ("Correct usage: python3 client.py <username>")
+    exit() 
+username = str(sys.argv[1])
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
     server_socket.connect((SERVER_IP_ADDR, SERVER_PORT)) 
@@ -39,27 +43,27 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                     command_split = command.replace('\n', '').split(':')
 
                     if command_split[0] == "list_rooms":
-                        packet = ListRoomsPacket(username=USERNAME).get_json_str()
+                        packet = ListRoomsPacket(username=username).get_json_str()
                         server_socket.sendall(packet.encode('utf-8'))
 
                     elif command_split[0] == "create_room":
-                        packet = CreateRoomPacket(username=USERNAME, roomname=command_split[1]).get_json_str()
+                        packet = CreateRoomPacket(username=username, roomname=command_split[1]).get_json_str()
                         server_socket.sendall(packet.encode('utf-8'))
 
                     elif command_split[0] == "join_room":
-                        packet = JoinRoomPacket(username=USERNAME, roomname=command_split[1]).get_json_str()
+                        packet = JoinRoomPacket(username=username, roomname=command_split[1]).get_json_str()
                         server_socket.sendall(packet.encode('utf-8'))
 
                     elif command_split[0] == "leave_room":
-                        packet = LeaveRoomPacket(username=USERNAME, roomname=command_split[1]).get_json_str()
+                        packet = LeaveRoomPacket(username=username, roomname=command_split[1]).get_json_str()
                         server_socket.sendall(packet.encode('utf-8'))
 
                     elif command_split[0] == "list_users":
-                        packet = ListUsersPacket(username=USERNAME, roomname=command_split[1]).get_json_str()
+                        packet = ListUsersPacket(username=username, roomname=command_split[1]).get_json_str()
                         server_socket.sendall(packet.encode('utf-8'))
 
                     elif command_split[0] == "send_msg":
-                        packet = SendMessagePacket(username=USERNAME, roomname=command_split[1], data=command_split[2]).get_json_str()
+                        packet = SendMessagePacket(username=username, roomname=command_split[1], data=command_split[2]).get_json_str()
                         server_socket.sendall(packet.encode('utf-8'))
 
                     elif command_split[0] == "exit":
@@ -69,7 +73,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                         sys.stdout.write("Invalid command!\n")
 
     except:
-        packet = ExitPacket(username=USERNAME).get_json_str()
+        packet = ExitPacket(username=username).get_json_str()
         server_socket.sendall(packet.encode('utf-8'))
         server_socket.close()
         print("Exiting...")

@@ -31,14 +31,13 @@ class Chatroom:
         return users_list
 
 
-    def broadcast(self, message, sending_user): 
-        for user in self.users: 
-            if user != sending_user: 
-                try: 
-                    user.connection.send(message) 
-                except: 
-                    user.connection.close() 
-                    self.remove_user(user.username) 
+    def broadcast(self, message): 
+        for _, user in self.users.items(): 
+            try: 
+                user.connection.sendall(message.encode('utf-8')) 
+            except: 
+                user.connection.close() 
+                self.remove_user(user.username) 
 
 
 # test = Chatroom("CS590")

@@ -6,6 +6,10 @@ from chatroom import Chatroom, User
 from packet import SERVER_OPCODE, CLIENT_OPCODE
 
 
+SERVER_IP_ADDR = "127.0.0.1"
+SERVER_PORT = 8000
+
+
 class Server:
     def __init__(self, IP_addr, port):
         self.rooms = {}
@@ -13,110 +17,121 @@ class Server:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((IP_addr, port)) 
             s.listen(100)
-            # conn, addr = s.accept() 
-            # with conn:
-            #     print(addr[0], " connected")
-            #     _thread.start_new_thread(self.client_thread,(conn, addr))
+
             while True:
                 conn, addr = s.accept()
                 print(addr[0], " connected")
-                _thread.start_new_thread(self.client_thread,(conn, addr))
+                _thread.start_new_thread(self.client_conn_thread,(conn, addr))
             conn.close()
 
 
-    def create_new_chatroom(self, room_name):
-        self.rooms[room_name] = Chatroom(room_name)
+    def client_conn_thread(self, conn, addr):   
+        conn.sendall(b"Welcome to IRC chat app!")    
+        while True:
+            packet_json_str = conn.recv(2048) 
+            if not packet_json_str:
+                break
+            else: 
+                self.process_packet(packet_json_str, conn, addr)
 
 
-    def display_all_rooms(self, verbose=False):
-        for _, room in self.rooms.items():
-            room.display_room(verbose)
+    def process_packet(self, packet_json_str, conn, addr):
+        # convert packet string to JSON
+        packet = json.loads(packet_json_str)
 
-
-    def display_room(self, room_name):
-        if room_name in self.rooms:
-            self.rooms[room_name].display_room()
+        # logging info on server side
+        log_str = f"<{packet['username']}> {packet['opcode']}"
+        if packet['opcode'] in CLIENT_OPCODE:
+            if packet['opcode'] != 'LIST_ROOMS':
+                log_str = log_str + f":{packet['roomname']}"
         else:
-            return None
+            log_str = log_str + f"Invalid Opcode!"
+        print(log_str)
 
+        # dispatch to corresponding handlers based on opcode
+        if packet['opcode'] == 'CREATE_ROOM':
+            self.create_new_chatroom(packet['roomname'], conn)
 
-    def add_user_to_room(self, user, room_name):
-        self.rooms[room_name].add_user(user)
+        elif packet['opcode'] == 'LIST_ROOMS':
+            self.send_rooms_list(conn) or "No rooms created!"
 
+        elif packet['opcode'] == 'JOIN_ROOM':
+            self.add_user_to_room(packet['username'], packet['roomname'], conn, addr)
 
-    def remove_user_from_room(self, username, room_name):
-        self.rooms[room_name].remove_user(username)
+        elif packet['opcode'] == 'LEAVE_ROOM':
+            self.remove_user_from_room(packet['username'], packet['roomname'])
 
+        elif packet['opcode'] == 'LIST_USERS':
+            self.send_users_list(packet['roomname'], conn)
 
-    def get_rooms_list(self):
-        room_list = ""
-        for roomname in self.rooms.keys():
-             room_list = room_list + roomname + '\n'
-        return room_list
-
-    def get_users_list(self, roomname):
-        if roomname in self.rooms:
-            return self.rooms[roomname].get_users_list()
-        else:
-            return "No such room found."        
-
-
-    def process_client_msg(self, msg_json_str, conn, addr):
-        msg = json.loads(msg_json_str)
-
-        if msg['opcode'] == 'CREATE_ROOM':
-            print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
-            self.create_new_chatroom(msg['roomname'])
-            return f"New chatroom {msg['roomname']} created!"
-
-        elif msg['opcode'] == 'LIST_ROOMS':
-            print(f"<{msg['username']}> {msg['opcode']}")
-            return self.get_rooms_list() or "No rooms created!"
-
-        elif msg['opcode'] == 'JOIN_ROOM':
-            print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
-            self.add_user_to_room(User(msg['username'], addr, conn), msg['roomname'])
-            return f"{msg['username']} joined room {msg['roomname']}!"
-
-        elif msg['opcode'] == 'LIST_USERS':
-            print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
-            return self.get_users_list(msg['roomname'])
-
-        elif msg['opcode'] == 'LEAVE_ROOM':
-            print(f"<{msg['username']}> {msg['opcode']}:{msg['roomname']}")
-            self.remove_user_from_room(msg['username'], msg['roomname'])
-            return f"{msg['username']} left room {msg['roomname']}!"
-
-        elif msg['opcode'] == 'EXIT':
-            print(f"{msg['username']} disconnected")
+        elif packet['opcode'] == 'EXIT':
+            print(f"{packet['username']} disconnected")
 
         else:
             return "Invalid Opcode!"
 
 
-    def client_thread(self, conn, addr):   
-        conn.sendall(b"Welcome to IRC chat app!")    
-        while True:
-            message = conn.recv(2048) 
-            if not message:
-                break
-            else: 
-                response_str = self.process_client_msg(message, conn, addr)
-                conn.sendall(response_str.encode('utf-8'))
+    # def display_all_rooms(self, verbose=False):
+    #     for _, room in self.rooms.items():
+    #         room.display_room(verbose)
 
 
-test = Server(IP_addr="127.0.0.1", port=8000)
-test.create_new_chatroom("CS590")
-test.create_new_chatroom("CS530")
-test.add_user_to_room(User("mmurali", "0.0.0.0", None), "CS590")
-test.add_user_to_room(User("diganta", "1.0.0.0", None), "CS590")
-test.add_user_to_room(User("mahesh", "2.0.0.0", None), "CS530")
-test.display_all_rooms()
-test.remove_user_from_room("mmurali", "CS590")
-test.remove_user_from_room("mmurali", "CS530")
-test.display_all_rooms()
-print("--------------")
-test.display_room("CS540")
+    # def display_room(self, room_name):
+    #     if room_name in self.rooms:
+    #         self.rooms[room_name].display_room()
+    #     else:
+    #         return None
+
+
+    def create_new_chatroom(self, room_name, conn):
+        # Create new room
+        self.rooms[room_name] = Chatroom(room_name)
+
+        # Send success message to user
+        success_msg = f"New chatroom {room_name} created!" 
+        conn.sendall(success_msg.encode('utf-8'))
+
+
+    def add_user_to_room(self, username, room_name, conn, addr):
+        # Add to room's user list
+        self.rooms[room_name].add_user(User(username, addr, conn))
+
+        # Announce to all users in room 
+        broadcast_msg = f"{username} joined room {room_name}!"
+        self.rooms[room_name].broadcast(broadcast_msg)
+
+
+    def remove_user_from_room(self, username, room_name):
+        # Remove from room's user list
+        self.rooms[room_name].remove_user(username)
+
+        # Announce to all users in room
+        broadcast_msg = f"{username} left room {room_name}!"
+        self.rooms[room_name].broadcast(broadcast_msg)
+
+
+    def send_rooms_list(self, conn):
+        # Build room list
+        room_list = ""
+        for roomname in self.rooms.keys():
+             room_list = room_list + roomname + '\n'
+        
+        # Send to asking user
+        conn.sendall(room_list.encode('utf-8'))
+
+
+    def send_users_list(self, roomname, conn):
+        # Get users list from room
+        if roomname in self.rooms:
+            users_list = self.rooms[roomname].get_users_list()
+        else:
+            users_list = "No such room found."        
+
+        # Send to asking user
+        conn.sendall(users_list.encode('utf-8'))
+
+
+server = Server(IP_addr=SERVER_IP_ADDR, port=SERVER_PORT)
 
 
 

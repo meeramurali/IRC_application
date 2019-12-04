@@ -64,6 +64,9 @@ class Server:
         elif packet['opcode'] == 'LIST_USERS':
             self.send_users_list(packet['roomname'], conn)
 
+        elif packet['opcode'] == 'SEND_MSG':
+            self.send_msg(packet['username'], packet['roomname'], packet['data'], conn)
+
         elif packet['opcode'] == 'EXIT':
             print(f"{packet['username']} disconnected")
 
@@ -129,6 +132,22 @@ class Server:
 
         # Send to asking user
         conn.sendall(users_list.encode('utf-8'))
+
+
+    def send_msg(self, username, room_name, message, conn):
+        # Check if room exists
+        if room_name not in self.rooms.keys():
+            conn.sendall(b'No such room found!')
+
+        # Check if user is in room
+        elif username not in self.rooms[room_name].users.keys():
+            conn.sendall(b'You must first join the room to send a message to it!')
+            
+        # Broadcast message to all users in room
+        else:
+            broadcast_msg = f"#[{room_name}] <{username}>: {message}"
+            self.rooms[room_name].broadcast(broadcast_msg)
+
 
 
 server = Server(IP_addr=SERVER_IP_ADDR, port=SERVER_PORT)

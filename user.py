@@ -4,12 +4,8 @@ class User:
         self.IP_addr = IP_addr
         self.connection = connection
 
-    def display_user(self, verbose=False):
-        if verbose:
-            print(f"[{self.username}] <{self.IP_addr}>")
-        else:
-            print(f"[{self.username}]")
-
-
-# test = User("mmurali", "0.0.0.0", None)
-# test.display_user(verbose=True)
+    # def display_user(self, verbose=False):
+    #     if verbose:
+    #         print(f"[{self.username}] <{self.IP_addr}>")
+    #     else:
+    #         print(f"[{self.username}]")

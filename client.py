@@ -2,7 +2,7 @@ import socket
 import select 
 import sys 
 from packet import *
-
+from util import send_packet, print_list, ExitIRCApp
   
 
 SERVER_IP_ADDR = "127.0.0.1" 
@@ -17,6 +17,65 @@ CLIENT_COMMANDS = [
     "exit"
 ]
 
+
+def process_packet(packet_json_str):
+    # convert packet string to JSON
+    packet = json.loads(packet_json_str)
+
+    if packet['opcode'] == 'WELCOME':
+        print(packet['data'])
+
+    elif packet['opcode'] == 'CREATE_ROOM_RES':
+        print(f"#[{packet['roomname']}] room created!")
+
+    elif packet['opcode'] == 'JOIN_ROOM_RES':
+        print(f"#[{packet['roomname']}] <{packet['username']}> joined the room.")
+
+    elif packet['opcode'] == 'LEAVE_ROOM_RES':
+        print(f"#[{packet['roomname']}] <{packet['username']}> left the room.")
+
+    elif packet['opcode'] == 'LIST_USERS_RES':
+        print_list(title=f"#{packet['roomname']} users", list_to_print=packet['data'])
+
+    elif packet['opcode'] == 'LIST_ROOMS_RES':
+        print_list(title="Chatrooms", list_to_print=packet['data'])
+
+    elif packet['opcode'] == 'TELL_MSG':
+        print(f"#[{packet['roomname']}] <{packet['username']}>: {packet['data']}")
+
+    elif packet['opcode'] == 'ERROR':
+        print(f"*** {packet['data']} ***")
+
+
+def process_command(command):
+    command_split = command.replace('\n', '').split(':')
+
+    if command_split[0] == "list_rooms":
+        send_packet(ListRoomsPacket(username=username), server_socket)
+
+    elif command_split[0] == "create_room":
+        send_packet(CreateRoomPacket(username=username, roomname=command_split[1]), server_socket)
+
+    elif command_split[0] == "join_room":
+        send_packet(JoinRoomPacket(username=username, roomname=command_split[1]), server_socket)
+
+    elif command_split[0] == "leave_room":
+        send_packet(LeaveRoomPacket(username=username, roomname=command_split[1]), server_socket)
+
+    elif command_split[0] == "list_users":
+        send_packet(ListUsersPacket(username=username, roomname=command_split[1]), server_socket)
+
+    elif command_split[0] == "send_msg":
+        send_packet(SendMessagePacket(username=username, roomname=command_split[1], msg=command_split[2]), server_socket)
+
+    elif command_split[0] == "exit":
+        raise ExitIRCApp()
+
+    else:
+        sys.stdout.write("Invalid command!\n")
+
+
+# Get username from command line arg
 if len(sys.argv) != 2: 
     print ("Correct usage: python3 client.py <username>")
     exit() 
@@ -32,49 +91,18 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             read_sockets, _, _ = select.select(sockets_list,[],[]) 
           
             for socket in read_sockets: 
-                # get message from server
+                # get packet from server
                 if socket == server_socket: 
-                    message = socket.recv(2048)
-                    print(message.decode('utf-8'))
+                    packet_json_str = socket.recv(2048)
+                    process_packet(packet_json_str)
 
-                # read command from standard input
+                # get command from standard input
                 else: 
                     command = sys.stdin.readline()
-                    command_split = command.replace('\n', '').split(':')
+                    process_command(command)
 
-                    if command_split[0] == "list_rooms":
-                        packet = ListRoomsPacket(username=username).get_json_str()
-                        server_socket.sendall(packet.encode('utf-8'))
-
-                    elif command_split[0] == "create_room":
-                        packet = CreateRoomPacket(username=username, roomname=command_split[1]).get_json_str()
-                        server_socket.sendall(packet.encode('utf-8'))
-
-                    elif command_split[0] == "join_room":
-                        packet = JoinRoomPacket(username=username, roomname=command_split[1]).get_json_str()
-                        server_socket.sendall(packet.encode('utf-8'))
-
-                    elif command_split[0] == "leave_room":
-                        packet = LeaveRoomPacket(username=username, roomname=command_split[1]).get_json_str()
-                        server_socket.sendall(packet.encode('utf-8'))
-
-                    elif command_split[0] == "list_users":
-                        packet = ListUsersPacket(username=username, roomname=command_split[1]).get_json_str()
-                        server_socket.sendall(packet.encode('utf-8'))
-
-                    elif command_split[0] == "send_msg":
-                        packet = SendMessagePacket(username=username, roomname=command_split[1], data=command_split[2]).get_json_str()
-                        server_socket.sendall(packet.encode('utf-8'))
-
-                    elif command_split[0] == "exit":
-                        raise Exception()
-
-                    else:
-                        sys.stdout.write("Invalid command!\n")
-
-    except:
-        packet = ExitPacket(username=username).get_json_str()
-        server_socket.sendall(packet.encode('utf-8'))
+    except ExitIRCApp:
+        send_packet(ExitPacket(username=username), server_socket)
         server_socket.close()
         print("Exiting...")
 

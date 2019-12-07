@@ -4,17 +4,18 @@ import json
 import _thread
 from chatroom import Chatroom, User
 from packet import *
-from util import send_packet
+from util import send_packet, DuplicateUsernameError
 
 
 SERVER_IP_ADDR = "127.0.0.1"
-SERVER_PORT = 8000
+SERVER_PORT = 8080
 
 
 class Server:
     def __init__(self, IP_addr, port):
         self.rooms = {}
         self.connections = {}
+        self.usernames = []
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((IP_addr, port)) 
@@ -38,10 +39,17 @@ class Server:
             # Handle client crashes/lost connection 
             if not packet_json_str:
                 print(f"{addr} disconnected")
-                self.disconnect_user(conn)
+                self.remove_user_from_all_rooms(conn)
+                self.usernames.remove(self.connections[conn].username)
+                del self.connections[conn]
                 break
-            else: 
-                self.process_packet(packet_json_str, conn, addr)
+            else:
+                try: 
+                    self.process_packet(packet_json_str, conn, addr)
+                except DuplicateUsernameError:
+                    print(f"{addr} disconnected")
+                    self.disconnect_user(conn)
+                    break
 
 
     def process_packet(self, packet_json_str, conn, addr):
@@ -59,7 +67,7 @@ class Server:
 
         # dispatch to corresponding handlers based on opcode
         if packet['opcode'] == 'REG_USER':
-            self.connections[conn] = User(packet['username'], addr, conn)
+            self.register_user(packet['username'], conn, addr)
 
         elif packet['opcode'] == 'CREATE_ROOM':
             self.create_new_chatroom(packet['roomname'], conn)
@@ -96,6 +104,16 @@ class Server:
     #         self.rooms[room_name].display_room()
     #     else:
     #         return None
+
+    def register_user(self, username, conn, addr):
+        if username not in self.usernames:
+            self.usernames.append(username)
+            self.connections[conn] = User(username, addr, conn)
+        else:
+            error_msg = f"Username {username} already taken!" \
+                        + " Reconnect with a new username."
+            send_packet(ErrorMessagePacket(error_msg), conn)
+            raise DuplicateUsernameError()
 
 
     def create_new_chatroom(self, room_name, conn):
@@ -135,7 +153,7 @@ class Server:
     def remove_user_from_room(self, username, room_name, conn):
         # Check if room exists
         if room_name not in self.rooms.keys():
-            error_msg = f"No room called {roomname} found!"
+            error_msg = f"No room called {room_name} found!"
             send_packet(ErrorMessagePacket(error_msg), conn)
         # Check if user is in room
         elif username not in self.rooms[room_name].users.keys():
@@ -187,7 +205,7 @@ class Server:
                 TellMsgPacket(username, room_name, message))
 
 
-    def disconnect_user(self, conn):
+    def remove_user_from_all_rooms(self, conn):
         username = self.connections[conn].username
         for room_name, room in self.rooms.items():
             if username in room.users.keys():
@@ -195,7 +213,11 @@ class Server:
                 room.remove_user(username)
                 # Broadcast to all remaining in room that the user has left
                 room.broadcast(LeaveRoomResponsePacket(username, room_name))
-                
+
+
+    def disconnect_user(self, conn):
+        send_packet(DisconnectUserPacket(), conn)
+        
 
 
 

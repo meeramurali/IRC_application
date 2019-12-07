@@ -6,7 +6,7 @@ from util import send_packet, print_list, print_dict, ExitIRCApp, ServerCrashErr
   
 
 SERVER_IP_ADDR = "127.0.0.1" 
-SERVER_PORT = 8000 
+SERVER_PORT = 8080 
 CLIENT_COMMANDS = {
     "create_room": "<room name>",
     "join_room": "<room name>",
@@ -51,6 +51,9 @@ def process_packet(packet_json_str):
 
     elif packet['opcode'] == 'ERROR':
         print(f"*** {packet['data']} ***")
+
+    elif packet['opcode'] == 'DISCONNECT':
+        raise ExitIRCApp()
 
 
 def process_command(command):
@@ -118,7 +121,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
   
     try:
         send_packet(RegisterUserPacket(username=username), server_socket)
-        
+
         while True: 
             # list of possible input streams 
             sockets_list = [sys.stdin, server_socket] 

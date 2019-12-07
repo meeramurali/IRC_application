@@ -20,7 +20,8 @@ SERVER_OPCODES = [
 	'LIST_ROOMS_RESP',
 	'LIST_USERS_RESP',
 	'TELL_MSG',
-	'ERROR'
+	'ERROR',
+	'DISCONNECT'
 ]
 
 
@@ -118,3 +119,8 @@ class TellMsgPacket(Packet):
 class ErrorMessagePacket(Packet):
 	def __init__(self, error_msg):
 		super().__init__(opcode='ERROR', data=error_msg)
+
+
+class DisconnectUserPacket(Packet):
+	def __init__(self):
+		super().__init__(opcode='DISCONNECT')

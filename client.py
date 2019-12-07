@@ -6,7 +6,7 @@ from util import send_packet, print_list, ExitIRCApp
   
 
 SERVER_IP_ADDR = "127.0.0.1" 
-SERVER_PORT = 8000 
+SERVER_PORT = 8080 
 CLIENT_COMMANDS = [
     "create_room",
     "join_room",

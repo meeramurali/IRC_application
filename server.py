@@ -8,7 +8,7 @@ from util import send_packet
 
 
 SERVER_IP_ADDR = "127.0.0.1"
-SERVER_PORT = 8000
+SERVER_PORT = 8080
 
 
 class Server:
@@ -21,7 +21,7 @@ class Server:
 
             while True:
                 conn, addr = s.accept()
-                print(addr[0], " connected")
+                print(f"{addr} connected")
                 _thread.start_new_thread(self.client_conn_thread,(conn, addr))
             conn.close()
 
@@ -45,7 +45,7 @@ class Server:
         packet = json.loads(packet_json_str)
 
         # logging info on server side
-        log_str = f"<{packet['username']}> {packet['opcode']}"
+        log_str = f"<{packet['username']} {addr}> {packet['opcode']}"
         if packet['opcode'] in CLIENT_OPCODES:
             if packet['opcode'] != 'LIST_ROOMS':
                 log_str = log_str + f":{packet['roomname']}"
@@ -73,7 +73,7 @@ class Server:
             self.send_msg(packet['username'], packet['roomname'], packet['data'], conn)
 
         elif packet['opcode'] == 'EXIT':
-            print(f"{packet['username']} disconnected")
+            print(f"{addr} disconnected")
 
         else:
             return "Invalid Opcode!"
@@ -92,11 +92,16 @@ class Server:
 
 
     def create_new_chatroom(self, room_name, conn):
-        # Create new room
-        self.rooms[room_name] = Chatroom(room_name)
+        # Check if there's already a room of that name
+        if room_name in self.rooms:
+            error_msg = f"A room with name {room_name} already exists!"
+            send_packet(ErrorMessagePacket(error_msg), conn)
+        else:    
+            # Create new room
+            self.rooms[room_name] = Chatroom(room_name)
 
-        # Send success message to user
-        send_packet(CreateRoomResponsePacket(room_name), conn)
+            # Send success message to user
+            send_packet(CreateRoomResponsePacket(room_name), conn)
 
 
     def add_user_to_room(self, username, room_name, conn, addr):
@@ -105,12 +110,19 @@ class Server:
             error_msg = f"No room called {room_name} found!"
             send_packet(ErrorMessagePacket(error_msg), conn)
         else:
-            # Add to room's user list
-            self.rooms[room_name].add_user(User(username, addr, conn))
+            # Check if username is already in room's list:
+            if username in self.rooms[room_name].users.keys():
+                error_msg = f"Username {username} already taken!" \
+                            + " Join a different room or reconnect with a new username."
+                send_packet(ErrorMessagePacket(error_msg), conn)
 
-            # Announce to all users in room 
-            self.rooms[room_name].broadcast(
-                JoinRoomResponsePacket(username, room_name))
+            else:
+                # Add to room's user list
+                self.rooms[room_name].add_user(User(username, addr, conn))
+
+                # Announce to all users in room 
+                self.rooms[room_name].broadcast(
+                    JoinRoomResponsePacket(username, room_name))
 
 
     def remove_user_from_room(self, username, room_name):

@@ -64,7 +64,7 @@ class Server:
             self.add_user_to_room(packet['username'], packet['roomname'], conn, addr)
 
         elif packet['opcode'] == 'LEAVE_ROOM':
-            self.remove_user_from_room(packet['username'], packet['roomname'])
+            self.remove_user_from_room(packet['username'], packet['roomname'], conn)
 
         elif packet['opcode'] == 'LIST_USERS':
             self.send_users_list(packet['roomname'], conn)
@@ -125,10 +125,14 @@ class Server:
                     JoinRoomResponsePacket(username, room_name))
 
 
-    def remove_user_from_room(self, username, room_name):
+    def remove_user_from_room(self, username, room_name, conn):
         # Check if room exists
         if room_name not in self.rooms.keys():
             error_msg = f"No room called {roomname} found!"
+            send_packet(ErrorMessagePacket(error_msg), conn)
+        # Check if user is in room
+        elif username not in self.rooms[room_name].users.keys():
+            error_msg = f"You have not joined room {room_name}!"
             send_packet(ErrorMessagePacket(error_msg), conn)
         else:
             # Remove from room's user list
@@ -161,7 +165,7 @@ class Server:
     def send_msg(self, username, room_name, message, conn):
         # Check if room exists
         if room_name not in self.rooms.keys():
-            error_msg = f"No room called {roomname} found!"
+            error_msg = f"No room called {room_name} found!"
             send_packet(ErrorMessagePacket(error_msg), conn)
 
         # Check if user is in room

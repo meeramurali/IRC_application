@@ -2,20 +2,20 @@ import socket
 import select 
 import sys 
 from packet import *
-from util import send_packet, print_list, ExitIRCApp
+from util import send_packet, print_list, print_dict, ExitIRCApp
   
 
 SERVER_IP_ADDR = "127.0.0.1" 
 SERVER_PORT = 8080 
-CLIENT_COMMANDS = [
-    "create_room",
-    "join_room",
-    "leave_room",
-    "list_rooms",
-    "list_users",
-    "send_msg",
-    "exit"
-]
+CLIENT_COMMANDS = {
+    "create_room": "<room name>",
+    "join_room": "<room name>",
+    "leave_room": "<room name>",
+    "list_rooms": None,
+    "list_users": "<room name>",
+    "send_msg": "<room name>:<a message>",
+    "exit": None
+}
 
 
 def process_packet(packet_json_str):
@@ -35,10 +35,16 @@ def process_packet(packet_json_str):
         print(f"#[{packet['roomname']}] <{packet['username']}> left the room.")
 
     elif packet['opcode'] == 'LIST_USERS_RES':
-        print_list(title=f"#{packet['roomname']} users", list_to_print=packet['data'])
+        if len(packet['data']):
+            print_list(title=f"#{packet['roomname']} users", list_to_print=packet['data'])
+        else:
+            print(f"*** No users currently in room {packet['roomname']}! ***")
 
     elif packet['opcode'] == 'LIST_ROOMS_RES':
-        print_list(title="Chatrooms", list_to_print=packet['data'])
+        if len(packet['data']):
+            print_list(title="Chatrooms", list_to_print=packet['data'])
+        else:
+            print("*** No chatrooms created! ***")
 
     elif packet['opcode'] == 'TELL_MSG':
         print(f"#[{packet['roomname']}] <{packet['username']}>: {packet['data']}")
@@ -54,25 +60,51 @@ def process_command(command):
         send_packet(ListRoomsPacket(username=username), server_socket)
 
     elif command_split[0] == "create_room":
-        send_packet(CreateRoomPacket(username=username, roomname=command_split[1]), server_socket)
+        if (len(command_split) != 2):
+            print((
+                '*** Invalid command! Do you want to create a new chatroom?' 
+                ' Try \"create_room:<room name>\". ***'))
+        else:
+            send_packet(CreateRoomPacket(username=username, roomname=command_split[1]), server_socket)
 
     elif command_split[0] == "join_room":
-        send_packet(JoinRoomPacket(username=username, roomname=command_split[1]), server_socket)
+        if (len(command_split) != 2):
+            print((
+                '*** Invalid command! Do you want to join a chatroom?' 
+                ' Try \"join_room:<room name>\". ***'))
+        else:
+            send_packet(JoinRoomPacket(username=username, roomname=command_split[1]), server_socket)
 
     elif command_split[0] == "leave_room":
-        send_packet(LeaveRoomPacket(username=username, roomname=command_split[1]), server_socket)
+        if (len(command_split) != 2):
+            print((
+                '*** Invalid command! Do you want to leave a chatroom?' 
+                ' Try \"leave_room:<room name>\". ***'))
+        else:
+            send_packet(LeaveRoomPacket(username=username, roomname=command_split[1]), server_socket)
 
     elif command_split[0] == "list_users":
-        send_packet(ListUsersPacket(username=username, roomname=command_split[1]), server_socket)
+        if (len(command_split) != 2):
+            print((
+                '*** Invalid command! Do you want to list users in a chatroom?' 
+                ' Try \"list_users:<room name>\". ***'))
+        else:
+            send_packet(ListUsersPacket(username=username, roomname=command_split[1]), server_socket)
 
     elif command_split[0] == "send_msg":
-        send_packet(SendMessagePacket(username=username, roomname=command_split[1], msg=command_split[2]), server_socket)
+        if (len(command_split) != 3):
+            print((
+                '*** Invalid command! Do you want to send a message?' 
+                ' Try \"send_msg:<room name>:<some message>\". ***'))
+        else:
+            send_packet(SendMessagePacket(username=username, roomname=command_split[1], msg=command_split[2]), server_socket)
 
     elif command_split[0] == "exit":
         raise ExitIRCApp()
 
     else:
-        sys.stdout.write("Invalid command!\n")
+        print('*** Invalid command! Here\'s a list of available commands: ***')
+        print_dict(title="User commands", dict_to_print=CLIENT_COMMANDS)
 
 
 # Get username from command line arg

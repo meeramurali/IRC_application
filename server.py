@@ -1,3 +1,16 @@
+"""
+server.py
+
+Server side script that processes client packets and routes 
+messages to appropriate users. 
+
+Author: Meera Murali
+Course: CS594 Internetworking Protocols
+Date: 12/6/2019
+Final Project: A simple IRC application 
+"""
+
+
 import socket 
 import select 
 import json
@@ -96,17 +109,6 @@ class Server:
         else:
             return "Invalid Opcode!"
 
-
-    # def display_all_rooms(self, verbose=False):
-    #     for _, room in self.rooms.items():
-    #         room.display_room(verbose)
-
-
-    # def display_room(self, room_name):
-    #     if room_name in self.rooms:
-    #         self.rooms[room_name].display_room()
-    #     else:
-    #         return None
 
     def register_user(self, username, conn, addr):
         if username not in self.usernames:

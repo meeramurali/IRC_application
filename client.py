@@ -1,3 +1,16 @@
+"""
+client.py
+
+Client side script to be run by every user who wants to connect to 
+the IRC server and send messages to other connected users.
+
+Author: Meera Murali
+Course: CS594 Internetworking Protocols
+Date: 12/6/2019
+Final Project: A simple IRC application 
+"""
+
+
 import socket 
 import select 
 import sys 

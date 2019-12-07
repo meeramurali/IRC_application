@@ -1,3 +1,15 @@
+"""
+packet.py
+
+Defines various types of packets sent by client and server.
+
+Author: Meera Murali
+Course: CS594 Internetworking Protocols
+Date: 12/6/2019
+Final Project: A simple IRC application 
+"""
+
+
 import json
 
 

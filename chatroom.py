@@ -1,3 +1,16 @@
+"""
+chatroom.py
+
+Defines the Chatroom class that handles a group of users 
+subscribing to a single message stream.
+
+Author: Meera Murali
+Course: CS594 Internetworking Protocols
+Date: 12/6/2019
+Final Project: A simple IRC application 
+"""
+
+
 from user import User
 
 class Chatroom:
@@ -15,10 +28,10 @@ class Chatroom:
             del self.users[username]
 
 
-    # def display_room(self, verbose=False):
-    #     print(f"#{self.name}")
-    #     for _, user in self.users.items():
-    #         user.display_user(verbose)
+    def display_room(self, verbose=False):
+        print(f"#{self.name}")
+        for _, user in self.users.items():
+            user.display_user(verbose)
 
 
     def broadcast(self, packet): 

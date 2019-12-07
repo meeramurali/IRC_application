@@ -26,3 +26,8 @@ def print_dict(title, dict_to_print):
 class ExitIRCApp(Exception):
     def __init__(self,*args,**kwargs):
         Exception.__init__(self,*args,**kwargs)
+
+
+class ServerCrashError(Exception):
+    def __init__(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)

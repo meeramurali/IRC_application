@@ -2,11 +2,11 @@ import socket
 import select 
 import sys 
 from packet import *
-from util import send_packet, print_list, print_dict, ExitIRCApp
+from util import send_packet, print_list, print_dict, ExitIRCApp, ServerCrashError
   
 
 SERVER_IP_ADDR = "127.0.0.1" 
-SERVER_PORT = 8080 
+SERVER_PORT = 8000 
 CLIENT_COMMANDS = {
     "create_room": "<room name>",
     "join_room": "<room name>",
@@ -126,7 +126,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 # get packet from server
                 if socket == server_socket: 
                     packet_json_str = socket.recv(2048)
-                    process_packet(packet_json_str)
+                    if packet_json_str:
+                        process_packet(packet_json_str)
+                    else:
+                        raise ServerCrashError()
 
                 # get command from standard input
                 else: 
@@ -137,5 +140,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         send_packet(ExitPacket(username=username), server_socket)
         server_socket.close()
         print("Exiting...")
+
+    except ServerCrashError:
+        server_socket.close()
+        print("Oops! Something went wrong. Connection with server lost. Exiting...")
 
 

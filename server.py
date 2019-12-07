@@ -87,6 +87,9 @@ class Server:
         elif packet['opcode'] == 'SEND_MSG':
             self.send_msg(packet['username'], packet['roomname'], packet['data'], conn)
 
+        elif packet['opcode'] == 'SEND_PVT_MSG':
+            self.send_pvt_msg(packet['username'], packet['receiver'], packet['data'], conn)
+
         elif packet['opcode'] == 'EXIT':
             print(f"{addr} disconnected")
 
@@ -203,6 +206,19 @@ class Server:
         else:
             self.rooms[room_name].broadcast(
                 TellMsgPacket(username, room_name, message))
+
+
+    def send_pvt_msg(self, username, receiver, message, conn):
+        # Check if receiver exists
+        if receiver not in self.usernames:
+            error_msg = f"No user called {receiver} found!"
+            send_packet(ErrorMessagePacket(error_msg), conn)
+
+        # Send message to receiver
+        else:
+            for receiver_conn, user in self.connections.items():
+                if receiver == user.username:
+                    send_packet(TellPvtMsgPacket(username, message), receiver_conn)
 
 
     def remove_user_from_all_rooms(self, conn):

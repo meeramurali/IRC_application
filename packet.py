@@ -9,6 +9,7 @@ CLIENT_OPCODES = [
 	'LIST_ROOMS',
 	'LIST_USERS',
 	'SEND_MSG',
+	'SEND_PVT_MSG',
 	'EXIT'
 ]
 
@@ -20,6 +21,7 @@ SERVER_OPCODES = [
 	'LIST_ROOMS_RESP',
 	'LIST_USERS_RESP',
 	'TELL_MSG',
+	'TELL_PVT_MSG',
 	'ERROR',
 	'DISCONNECT'
 ]
@@ -27,12 +29,13 @@ SERVER_OPCODES = [
 
 # Base Packet class
 class Packet:
-	def __init__(self, opcode, data=None, username=None, roomname=None):
+	def __init__(self, opcode, data=None, username=None, roomname=None, receiver=None):
 		self.packet = {
 			"opcode": opcode,
 			"data": data,
 			"username": username,
-			"roomname": roomname
+			"roomname": roomname,
+			"receiver": receiver
 		}
 
 	def get_json_str(self):
@@ -63,6 +66,11 @@ class CreateRoomPacket(Packet):
 class SendMessagePacket(Packet):
 	def __init__(self, username, roomname, msg):
 		super().__init__(opcode='SEND_MSG', data=msg, username=username, roomname=roomname)
+
+
+class SendPvtMessagePacket(Packet):
+	def __init__(self, username, receiver, msg):
+		super().__init__(opcode='SEND_PVT_MSG', data=msg, username=username, receiver=receiver)
 
 
 class ListRoomsPacket(Packet):
@@ -114,6 +122,11 @@ class ListUsersResponsePacket(Packet):
 class TellMsgPacket(Packet):
 	def __init__(self, username, roomname, msg):
 		super().__init__(opcode='TELL_MSG', data=msg, username=username, roomname=roomname)
+
+
+class TellPvtMsgPacket(Packet):
+	def __init__(self, username, msg):
+		super().__init__(opcode='TELL_PVT_MSG', data=msg, username=username)
 
 
 class ErrorMessagePacket(Packet):

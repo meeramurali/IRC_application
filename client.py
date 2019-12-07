@@ -14,6 +14,7 @@ CLIENT_COMMANDS = {
     "list_rooms": None,
     "list_users": "<room name>",
     "send_msg": "<room name>:<a message>",
+    "send_pvt_msg": "<receiver username>:<a message>",
     "exit": None
 }
 
@@ -48,6 +49,9 @@ def process_packet(packet_json_str):
 
     elif packet['opcode'] == 'TELL_MSG':
         print(f"#[{packet['roomname']}] <{packet['username']}>: {packet['data']}")
+
+    elif packet['opcode'] == 'TELL_PVT_MSG':
+        print(f"#[Private Msg] <{packet['username']}>: {packet['data']}")
 
     elif packet['opcode'] == 'ERROR':
         print(f"*** {packet['data']} ***")
@@ -101,6 +105,14 @@ def process_command(command):
                 ' Try \"send_msg:<room name>:<some message>\". ***'))
         else:
             send_packet(SendMessagePacket(username=username, roomname=command_split[1], msg=command_split[2]), server_socket)
+
+    elif command_split[0] == "send_pvt_msg":
+        if (len(command_split) != 3):
+            print((
+                '*** Invalid command! Do you want to send a private message?' 
+                ' Try \"send_pvt_msg:<receiver username>:<some message>\". ***'))
+        else:
+            send_packet(SendPvtMessagePacket(username=username, receiver=command_split[1], msg=command_split[2]), server_socket)
 
     elif command_split[0] == "exit":
         raise ExitIRCApp()

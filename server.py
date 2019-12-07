@@ -46,7 +46,7 @@ class Server:
 
         # logging info on server side
         log_str = f"<{packet['username']}> {packet['opcode']}"
-        if packet['opcode'] in CLIENT_OPCODE:
+        if packet['opcode'] in CLIENT_OPCODES:
             if packet['opcode'] != 'LIST_ROOMS':
                 log_str = log_str + f":{packet['roomname']}"
         else:

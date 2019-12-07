@@ -14,6 +14,7 @@ SERVER_PORT = 8000
 class Server:
     def __init__(self, IP_addr, port):
         self.rooms = {}
+        self.connections = {}
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((IP_addr, port)) 
@@ -34,7 +35,10 @@ class Server:
 
         while True:
             packet_json_str = conn.recv(2048) 
+            # Handle client crashes/lost connection 
             if not packet_json_str:
+                print(f"{addr} disconnected")
+                self.disconnect_user(conn)
                 break
             else: 
                 self.process_packet(packet_json_str, conn, addr)
@@ -47,14 +51,17 @@ class Server:
         # logging info on server side
         log_str = f"<{packet['username']} {addr}> {packet['opcode']}"
         if packet['opcode'] in CLIENT_OPCODES:
-            if packet['opcode'] != 'LIST_ROOMS':
+            if packet['opcode'] not in ['REG_USER', 'LIST_ROOMS']:
                 log_str = log_str + f":{packet['roomname']}"
         else:
             log_str = log_str + f"Invalid Opcode!"
         print(log_str)
 
         # dispatch to corresponding handlers based on opcode
-        if packet['opcode'] == 'CREATE_ROOM':
+        if packet['opcode'] == 'REG_USER':
+            self.connections[conn] = User(packet['username'], addr, conn)
+
+        elif packet['opcode'] == 'CREATE_ROOM':
             self.create_new_chatroom(packet['roomname'], conn)
 
         elif packet['opcode'] == 'LIST_ROOMS':
@@ -178,6 +185,17 @@ class Server:
         else:
             self.rooms[room_name].broadcast(
                 TellMsgPacket(username, room_name, message))
+
+
+    def disconnect_user(self, conn):
+        username = self.connections[conn].username
+        for room_name, room in self.rooms.items():
+            if username in room.users.keys():
+                # Remove user from room list
+                room.remove_user(username)
+                # Broadcast to all remaining in room that the user has left
+                room.broadcast(LeaveRoomResponsePacket(username, room_name))
+                
 
 
 

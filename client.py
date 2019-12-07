@@ -114,9 +114,11 @@ if len(sys.argv) != 2:
 username = str(sys.argv[1])
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-    server_socket.connect((SERVER_IP_ADDR, SERVER_PORT)) 
+    server_socket.connect((SERVER_IP_ADDR, SERVER_PORT))
   
     try:
+        send_packet(RegisterUserPacket(username=username), server_socket)
+        
         while True: 
             # list of possible input streams 
             sockets_list = [sys.stdin, server_socket] 

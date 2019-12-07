@@ -2,6 +2,7 @@ import json
 
 
 CLIENT_OPCODES = [
+	'REG_USER',
 	'JOIN_ROOM',
 	'LEAVE_ROOM',
 	'CREATE_ROOM',
@@ -38,6 +39,11 @@ class Packet:
 
 
 # Client packets
+class RegisterUserPacket(Packet):
+	def __init__(self, username):
+		super().__init__(opcode='REG_USER', username=username)
+
+
 class JoinRoomPacket(Packet):
 	def __init__(self, username, roomname):
 		super().__init__(opcode='JOIN_ROOM', username=username, roomname=roomname)
